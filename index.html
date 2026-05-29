@@ -2066,22 +2066,36 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
     }
     async function testConnectionInternal() {
       const r = document.getElementById('test-result');
+      const originalText = r.textContent;
+      const originalClass = r.className;
       r.textContent = '⏳ 测试中...'; r.className = 'text-sm text-center text-gray-600';
-      saveSettingsInternal();
-      const c = getConfig();
+
+      // 先保存输入到临时变量，而不是立即调用saveSettingsInternal
+      const tempUrl = document.getElementById('cfg-url').value.trim();
+      const tempKey = document.getElementById('cfg-key').value.trim();
+      const tempModel = document.getElementById('cfg-model').value.trim();
+
       try {
-        const resp = await fetch(c.url + '/chat/completions', {
+        const resp = await fetch(tempUrl + '/chat/completions', {
           method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: c.model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 5 })
+          headers: { 'Authorization': 'Bearer ' + tempKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: tempModel, messages: [{ role: 'user', content: 'ping' }], max_tokens: 5 })
         });
-        if (resp.ok) { r.textContent = '✅ 连接成功'; r.className = 'text-sm text-center text-green-600'; }
+        if (resp.ok) {
+          r.textContent = '✅ 连接成功';
+          r.className = 'text-sm text-center text-green-600';
+          // 只有测试成功后才保存设置
+          saveSettingsInternal();
+        }
         else {
           const e = await resp.json().catch(() => ({}));
           r.textContent = '❌ ' + (e.error?.message || 'HTTP ' + resp.status);
           r.className = 'text-sm text-center text-red-600';
         }
-      } catch (e) { r.textContent = '❌ ' + e.message; r.className = 'text-sm text-center text-red-600'; }
+      } catch (e) {
+        r.textContent = '❌ ' + e.message;
+        r.className = 'text-sm text-center text-red-600';
+      }
     }
 
     // ==================== 记忆系统管理 ====================
@@ -3280,6 +3294,11 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
         return;
       }
       if (!confirm('确定要刷新本轮结果吗？将删除当前回合的所有数据，使用相同决策重新生成。')) return;
+
+      // 保存当前内容，以便出错时恢复
+      var narrativeBox = document.getElementById('narrative-box');
+      var originalContent = narrativeBox ? narrativeBox.innerHTML : '';
+
       refreshSnapshot = s;
       gameState = JSON.parse(JSON.stringify(s.gameState));
       turnCount = s.turnCount;
@@ -3294,7 +3313,23 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       chartData.support = chartData.support.slice(0, s.chartSupLen);
       renderAll();
       logInfo('刷新本轮 回合=' + s.turnCount + ' 决策=' + s.decision.substring(0, 40));
-      submitDecisionInternal(s.decision);
+
+      // 我们需要包装submitDecisionInternal，确保出错时恢复
+      submitDecisionInternalWithRestore(s.decision, originalContent);
+    }
+
+    // 包装函数，在刷新时出错可以恢复内容
+    async function submitDecisionInternalWithRestore(decisionText, originalContent) {
+      try {
+        await submitDecisionInternal(decisionText);
+      } catch (e) {
+        // 如果出错，尝试恢复原有内容
+        var narrativeBox = document.getElementById('narrative-box');
+        if (narrativeBox && originalContent) {
+          narrativeBox.innerHTML = originalContent;
+        }
+        throw e;
+      }
     }
     function refreshOpeningFromPanel() {
       if (isProcessing) return;
@@ -3313,14 +3348,23 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       if (btn) { btn.disabled = true; btn.textContent = '⏳ 重新生成开局...'; }
       document.getElementById('ai-status').classList.remove('hidden');
       document.getElementById('ai-status-text').textContent = '正在重新生成开局...';
-      document.getElementById('narrative-box').innerHTML = '<p class="text-gray-500 typing-cursor">AI 正在重新生成开局城市状态...</p>';
+
+      // 保存当前narrative-box的内容，以便失败时可以恢复
+      var narrativeBox = document.getElementById('narrative-box');
+      var originalContent = narrativeBox ? narrativeBox.innerHTML : '';
+      narrativeBox.innerHTML = '<p class="text-gray-500 typing-cursor">AI 正在重新生成开局城市状态...</p>';
+
       try {
-        var apiUrl = localStorage.getItem('aic_api_url') || '';
-        var apiKey = localStorage.getItem('aic_api_key') || '';
+        // 使用最新的API配置，而不是依赖snapshot
+        var c = getConfig();
+        var apiUrl = c.url;
+        var apiKey = c.key;
+        var modelToUse = c.model;
+
         var resp = await fetch(apiUrl + '/chat/completions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-          body: JSON.stringify({ model: snapshot.apiModel || proModel || 'deepseek-reasoner', messages: snapshot.messages, stream: true, temperature: 0.7, max_tokens: 16384 })
+          body: JSON.stringify({ model: modelToUse, messages: snapshot.messages, stream: true, temperature: 0.7, max_tokens: 16384 })
         });
         if (!resp.ok) throw new Error('API请求失败: ' + resp.status);
         var decoder2 = new TextDecoder();
@@ -3387,7 +3431,12 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
         toast.style.opacity = '1';
         setTimeout(function () { toast.style.opacity = '0'; }, 4000);
       } catch (e) {
-        document.getElementById('narrative-box').innerHTML = '<p class="text-red-600">开局刷新失败: ' + e.message + '</p><p class="text-gray-600 mt-2 text-sm">请检查API设置或网络连接后重试</p>';
+        // 失败时恢复原始内容
+        if (narrativeBox && originalContent) {
+          narrativeBox.innerHTML = originalContent;
+        } else {
+          narrativeBox.innerHTML = '<p class="text-red-600">开局刷新失败: ' + e.message + '</p><p class="text-gray-600 mt-2 text-sm">请检查API设置或网络连接后重试</p>';
+        }
         document.getElementById('ai-status-text').textContent = '❌ ' + e.message;
         // 恢复刷新按钮
         if (refreshBtn) {
