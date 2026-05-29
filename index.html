@@ -2374,10 +2374,11 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       // 调用AI（streaming模式，max_tokens提升到16384以容纳完整初始数据）
       var startNarrativeEl = document.getElementById('narrative-box');
       if (startNarrativeEl) startNarrativeEl.innerHTML = '<p class="text-gray-500 typing-cursor">AI 正在生成初始城市状态（数据量大，请耐心等待）...</p>';
-      // 先切换到游戏界面 - 修复元素ID问题
+      // 先切换到游戏界面 - 修复元素ID问题，添加安全检查
       var startPanel = document.getElementById('start-panel');
       if (startPanel) startPanel.style.display = 'none';
-      document.getElementById('app').style.display = 'block';
+      var appEl = document.getElementById('app');
+      if (appEl) appEl.style.display = 'block';
       var fullContent = '';
       var finishReason = '';
       var decoder = new TextDecoder();
