@@ -2147,9 +2147,9 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
 
     // 获取资源基础路径（兼容 GitHub Pages 等子目录部署）
     function getBasePath() {
-      var path = window.location.pathname;
-      var lastSlash = path.lastIndexOf('/');
-      return lastSlash > 0 ? path.substring(0, lastSlash + 1) : '';
+      var origin = window.location.origin || '';
+      var pathname = (window.location.pathname || '').replace(/\/[^\/]*$/, '/');
+      return origin + pathname;
     }
     function assetPath(filename) {
       return getBasePath() + filename;
@@ -2166,7 +2166,8 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       var el = document.getElementById('opening-declaration');
       if (!el) return;
       el.innerHTML = '<div class="decl-loading">正在加载开局声明...</div>';
-      fetch(assetPath('开局声明.txt'), { cache: 'no-cache' })
+      var url = assetPath('开局声明.txt');
+      fetch(url, { cache: 'no-cache' })
         .then(function (r) {
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.text();
@@ -2180,8 +2181,17 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
           }
           _openingDeclarationLoaded = true;
         })
-        .catch(function () {
-          el.innerHTML = '<div class="decl-text">欢迎来到 AI City Simulator —— 市长模拟器。\n\n请完成市长任命档案，开始你的执政之路。</div>';
+        .catch(function (e) {
+          console.warn('加载开局声明失败 (尝试路径: ' + url + '):', e);
+          fetch('开局声明.txt', { cache: 'no-cache' })
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+            .then(function (text) {
+              text = text.trim();
+              el.innerHTML = '<div class="decl-text">' + (text || '欢迎来到 AI City Simulator —— 市长模拟器。\n\n请完成市长任命档案，开始你的执政之路。') + '</div>';
+            })
+            .catch(function () {
+              el.innerHTML = '<div class="decl-text">欢迎来到 AI City Simulator —— 市长模拟器。\n\n请完成市长任命档案，开始你的执政之路。</div>';
+            });
           _openingDeclarationLoaded = true;
         });
     }
@@ -2189,7 +2199,8 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
     function loadPresets() {
       if (_presetsLoaded) return;
       _presetsLoaded = true;
-      fetch(assetPath('start.txt'), { cache: 'no-cache' })
+      var url = assetPath('开局.txt');
+      fetch(url, { cache: 'no-cache' })
         .then(function (r) {
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.text();
@@ -2198,14 +2209,18 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
           _presets = parsePresets(text);
           _presetsLoaded = true;
         })
-        .catch(function () {
-          _presets = [];
+        .catch(function (e) {
+          console.warn('加载预设剧本失败 (尝试路径: ' + url + '):', e);
+          fetch('开局.txt', { cache: 'no-cache' })
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+            .then(function (text) { _presets = parsePresets(text); })
+            .catch(function () { _presets = []; });
         });
     }
 
     function parsePresets(text) {
       var presets = [];
-      var blocks = text.split(/#\s*start：/);
+      var blocks = text.split(/#\s*(?:开局|start)[：:]/);
       blocks.shift();
       blocks.forEach(function (block) {
         var lines = block.split('\n');
@@ -2280,7 +2295,7 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       var el = document.getElementById('start-preset-list');
       if (!el) return;
       if (_presets.length === 0) {
-        el.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#999;padding:20px">未能加载预设剧本，请确保"start.txt"文件存在</p>';
+        el.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#999;padding:20px">未能加载预设剧本，请确保"开局.txt"文件存在</p>';
         el.style.display = '';
         return;
       }
@@ -3414,7 +3429,8 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       modal.classList.remove('hidden');
       var checkbox = document.getElementById('disclaimer-dont-show');
       if (checkbox) checkbox.checked = false;
-      fetch(assetPath('使用说明与免责声明.txt'), { cache: 'no-cache' })
+      var url = assetPath('使用说明与免责声明.txt');
+      fetch(url, { cache: 'no-cache' })
         .then(function (r) {
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.text();
@@ -3425,8 +3441,19 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
             '<div class="space-y-2">' + text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>') + '</div>' :
             '<p class="text-center text-gray-500">未找到使用说明文本。</p>';
         })
-        .catch(function () {
-          content.innerHTML = '<p class="text-center text-gray-500">未找到使用说明文本（"使用说明与免责声明.txt"文件不存在）。</p>';
+        .catch(function (e) {
+          console.warn('加载免责声明失败 (尝试路径: ' + url + '):', e);
+          fetch('使用说明与免责声明.txt', { cache: 'no-cache' })
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+            .then(function (text) {
+              text = text.trim();
+              content.innerHTML = text ?
+                '<div class="space-y-2">' + text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>') + '</div>' :
+                '<p class="text-center text-gray-500">未找到使用说明文本。</p>';
+            })
+            .catch(function () {
+              content.innerHTML = '<p class="text-center text-gray-500">未找到使用说明文本（"使用说明与免责声明.txt"文件不存在）。</p>';
+            });
         });
     }
 
