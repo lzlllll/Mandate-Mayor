@@ -92,6 +92,111 @@
       z-index: 100
     }
 
+    .start-mode-container {
+      padding: 0 20px 20px;
+    }
+
+    .start-mode-title {
+      text-align: center;
+      font-size: 1.1em;
+      font-weight: 700;
+      color: #4a3c31;
+      margin: 0 0 16px;
+    }
+
+    .start-mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .start-mode-card {
+      background: linear-gradient(135deg, #fef3e2, #fde8cc);
+      border: 2px solid #8b5a2b;
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .start-mode-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(139, 90, 43, 0.25);
+    }
+
+    .start-mode-card.selected {
+      border-color: #2d5016;
+      background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+    }
+
+    .start-mode-icon {
+      font-size: 2.2em;
+      margin-bottom: 8px;
+    }
+
+    .start-mode-name {
+      font-weight: 700;
+      font-size: 1.05em;
+      color: #4a3c31;
+      margin-bottom: 6px;
+    }
+
+    .start-mode-desc {
+      font-size: 0.8em;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    .start-preset-list {
+      max-height: 400px;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 4px;
+    }
+
+    .start-preset-item {
+      background: #fff;
+      border: 2px solid #d35400;
+      border-radius: 10px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .start-preset-item:hover {
+      background: #fff3e0;
+      transform: translateY(-1px);
+    }
+
+    .start-preset-item.selected {
+      border-color: #2d5016;
+      background: #e8f5e9;
+    }
+
+    .start-preset-title {
+      font-weight: 700;
+      font-size: 0.95em;
+      color: #d35400;
+      margin-bottom: 6px;
+    }
+
+    .start-preset-desc {
+      font-size: 0.78em;
+      color: #666;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .start-preset-quote {
+      font-size: 0.75em;
+      color: #888;
+      font-style: italic;
+    }
+
     .start-container {
       max-width: 1200px;
       margin: 20px auto;
@@ -549,14 +654,31 @@
         <p style="opacity:0.9;font-size:0.95em">构建你的城市，书写你的执政传奇</p>
       </div>
       <div id="opening-declaration" class="start-declaration"></div>
-      <div class="start-nav">
+      <!-- 模式选择界面 -->
+      <div id="start-mode-select" class="start-mode-container">
+        <h3 class="start-mode-title">选择开局方式</h3>
+        <div class="start-mode-grid">
+          <div id="start-mode-custom" class="start-mode-card" onclick="selectStartMode('custom')">
+            <div class="start-mode-icon">✨</div>
+            <div class="start-mode-name">自定义开局</div>
+            <div class="start-mode-desc">从零开始，自由定义城市背景、市长身份与经济状态</div>
+          </div>
+          <div id="start-mode-preset" class="start-mode-card" onclick="selectStartMode('preset')">
+            <div class="start-mode-icon">📜</div>
+            <div class="start-mode-name">预设剧本</div>
+            <div class="start-mode-desc">选择预设历史背景剧本，体验精心设计的故事与挑战</div>
+          </div>
+        </div>
+        <div id="start-preset-list" class="start-preset-list" style="display:none"></div>
+      </div>
+      <div class="start-nav" id="start-nav" style="display:none">
         <button class="start-nav-btn active" onclick="startSwitchTab('mayor')">1. 市长档案</button>
         <button class="start-nav-btn" onclick="startSwitchTab('city')">2. 城市蓝图</button>
         <button class="start-nav-btn" onclick="startSwitchTab('economy')">3. 经济脉络</button>
         <button class="start-nav-btn" onclick="startSwitchTab('skills')">4. 执政技能</button>
         <button class="start-nav-btn" onclick="startSwitchTab('final')">5. 确认开局</button>
       </div>
-      <div class="start-body">
+      <div class="start-body" style="display:none">
         <!-- Tab 1: 市长档案 -->
         <div id="start-tab-mayor" class="start-tab active">
           <div class="start-card">
@@ -940,9 +1062,6 @@
               <div id="standalone-file-result" class="text-xs text-center mt-2"></div>
             </div>
           </div>
-          <button onclick="openNPClifeModal()"
-            class="px-3 py-1 bg-orange-200 hover:bg-orange-300 rounded-lg text-sm text-[#d35400] font-bold border border-[#d35400]/30">👁️
-            市井百态</button>
           <button onclick="resetGame()"
             class="px-3 py-1 bg-amber-200 hover:bg-amber-300 rounded-lg text-sm text-[#8b5a2b] font-bold border border-[#8b5a2b]/30">🔄
             新游戏</button>
@@ -1153,6 +1272,13 @@
             <div id="npc-sidebar" class="px-3 pb-3 space-y-2 overflow-y-auto scrollbar-thin" style="max-height:320px">
             </div>
           </details>
+          <!-- 市井百态入口 -->
+          <button onclick="openNPClifeModal()"
+            class="w-full bg-gradient-to-r from-[#d35400] to-[#e67e22] hover:opacity-90 text-white rounded-lg py-3 px-4 font-bold text-base shadow-lg mb-3 flex items-center justify-between"
+            style="box-shadow:0 4px 12px rgba(211,84,0,0.35)">
+            <span><i class="fa fa-eye mr-2"></i>👁️ 市井百态</span>
+            <span class="text-xs bg-white/20 rounded px-2 py-0.5">观察底层市民</span>
+          </button>
           <details class="bg-amber-50/95 rounded-lg border border-[#8b5a2b]/30"
             style="box-shadow:2px 2px 5px rgba(0,0,0,0.2)">
             <summary
@@ -2020,6 +2146,11 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
     function startRandInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
     var _openingDeclarationLoaded = false;
+    var _presetsLoaded = false;
+    var _presets = [];
+    var _selectedStartMode = null;
+    var _selectedPreset = null;
+
     function loadOpeningDeclaration() {
       if (_openingDeclarationLoaded) return;
       var el = document.getElementById('opening-declaration');
@@ -2043,6 +2174,149 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
           el.innerHTML = '<div class="decl-text">欢迎来到 AI City Simulator —— 市长模拟器。\n\n请完成市长任命档案，开始你的执政之路。</div>';
           _openingDeclarationLoaded = true;
         });
+    }
+
+    function loadPresets() {
+      if (_presetsLoaded) return;
+      _presetsLoaded = true;
+      fetch('start.txt', { cache: 'no-cache' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.text();
+        })
+        .then(function (text) {
+          _presets = parsePresets(text);
+          _presetsLoaded = true;
+        })
+        .catch(function () {
+          _presets = [];
+        });
+    }
+
+    function parsePresets(text) {
+      var presets = [];
+      var blocks = text.split(/#\s*start：/);
+      blocks.shift();
+      blocks.forEach(function (block) {
+        var lines = block.split('\n');
+        var titleLine = lines[0].trim();
+        var titleMatch = titleLine.match(/^([^#：]+?)(?:\s*[（(].*?[）)]\s*)?[：:](.+)$/);
+        var title = titleMatch ? titleMatch[1].trim() : titleLine;
+        var subtitle = titleMatch ? titleMatch[2].trim() : '';
+        var yearMatch = title.match(/(\d{4})/);
+        var year = yearMatch ? yearMatch[1] : '';
+        var displayTitle = (year ? year + '：' : '') + title + (subtitle ? '：' + subtitle : '');
+        var cityBg = '';
+        var cityData = '';
+        var playerIdentity = '';
+        var quote = '';
+        var section = '';
+        lines.forEach(function (line) {
+          var trimmed = line.trim();
+          if (trimmed === '### 城市背景：' || trimmed === '### 城市背景' || trimmed === '## 城市背景') {
+            section = 'cityBg';
+          } else if (trimmed === '## 城市数据' || trimmed === '### 城市数据') {
+            section = 'cityData';
+          } else if (trimmed === '## 玩家身份' || trimmed === '### 玩家身份') {
+            section = 'playerIdentity';
+          } else if (trimmed.startsWith('- 描述：') || trimmed.startsWith('- 描述:')) {
+            quote = trimmed.replace(/^[-\s]*描述[：:]\s*/, '');
+          } else if (trimmed.startsWith('###') || trimmed.startsWith('##')) {
+            section = '';
+          } else if (section === 'cityBg' && trimmed) {
+            cityBg += (cityBg ? '\n' : '') + trimmed;
+          } else if (section === 'cityData' && trimmed && !trimmed.startsWith('人口') && !trimmed.startsWith('经济') && !trimmed.startsWith('特点') && !trimmed.startsWith('GDP') && !trimmed.startsWith('####')) {
+            cityData += (cityData ? '\n' : '') + trimmed;
+          } else if (section === 'playerIdentity' && trimmed) {
+            playerIdentity += (playerIdentity ? '\n' : '') + trimmed;
+          }
+        });
+        if (title || cityBg || playerIdentity) {
+          presets.push({
+            title: displayTitle || title,
+            year: year,
+            cityName: title,
+            cityBg: cityBg,
+            cityData: cityData,
+            playerIdentity: playerIdentity,
+            quote: quote
+          });
+        }
+      });
+      return presets;
+    }
+
+    function selectStartMode(mode) {
+      _selectedStartMode = mode;
+      document.querySelectorAll('.start-mode-card').forEach(function (el) { el.classList.remove('selected'); });
+      if (mode === 'custom') {
+        document.getElementById('start-mode-custom').classList.add('selected');
+        document.getElementById('start-preset-list').style.display = 'none';
+        document.getElementById('start-nav').style.display = '';
+        document.querySelector('.start-body').style.display = '';
+        startSwitchTab('mayor');
+      } else if (mode === 'preset') {
+        document.getElementById('start-mode-preset').classList.add('selected');
+        if (_presets.length === 0) {
+          loadPresets();
+          setTimeout(function () { renderPresetList(); }, 500);
+        } else {
+          renderPresetList();
+        }
+      }
+    }
+
+    function renderPresetList() {
+      var el = document.getElementById('start-preset-list');
+      if (!el) return;
+      if (_presets.length === 0) {
+        el.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#999;padding:20px">未能加载预设剧本，请确保"start.txt"文件存在</p>';
+        el.style.display = '';
+        return;
+      }
+      var html = '';
+      _presets.forEach(function (preset, idx) {
+        html += '<div class="start-preset-item' + (_selectedPreset === idx ? ' selected' : '') + '" onclick="selectPreset(' + idx + ')">';
+        html += '<div class="start-preset-title">' + preset.title + '</div>';
+        html += '<div class="start-preset-desc">' + (preset.cityBg.substring(0, 80) || '') + (preset.cityBg.length > 80 ? '...' : '') + '</div>';
+        if (preset.quote) {
+          html += '<div class="start-preset-quote">"' + preset.quote + '"</div>';
+        }
+        html += '</div>';
+      });
+      html += '<div class="start-preset-item" onclick="selectStartMode(\'custom\')" style="background:#f5f5f5;border-style:dashed;color:#888;text-align:center;display:flex;align-items:center;justify-content:center;min-height:80px"><div>没有喜欢的？<br><strong>自定义开局</strong></div></div>';
+      el.innerHTML = html;
+      el.style.display = '';
+    }
+
+    function selectPreset(idx) {
+      if (idx < 0 || idx >= _presets.length) return;
+      _selectedPreset = idx;
+      document.querySelectorAll('.start-preset-item').forEach(function (el, i) {
+        el.classList.toggle('selected', i === idx);
+      });
+      var preset = _presets[idx];
+      var bgCustom = document.getElementById('start-bg-custom');
+      document.getElementById('start-city-name').value = preset.cityName || '';
+      document.getElementById('start-city-symbol').value = '';
+      document.getElementById('start-era').value = preset.year ? preset.year + '年代' : '';
+      document.getElementById('start-mayor-origin').value = preset.playerIdentity || '';
+      var bgRadio = document.querySelector('input[name="start-bg"][value="自定义"]');
+      if (bgRadio) {
+        bgRadio.checked = true;
+        var parent = bgRadio.closest('.start-radio-group');
+        if (parent) {
+          parent.querySelectorAll('.start-radio-opt').forEach(function (opt) { opt.classList.remove('selected'); });
+          bgRadio.closest('.start-radio-opt').classList.add('selected');
+        }
+      }
+      if (bgCustom) {
+        bgCustom.style.display = '';
+        bgCustom.value = preset.cityBg || '';
+      }
+      document.getElementById('start-nav').style.display = '';
+      document.querySelector('.start-body').style.display = '';
+      startSwitchTab('mayor');
     }
 
     function startSwitchTabInternal(tabId) {
@@ -3103,8 +3377,60 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       broadcastSegments = [];
       _npcLifeLastDay = '';
       _broadcastLastDay = '';
+      resetStartPanel();
       document.getElementById('start-panel').style.display = 'flex';
       loadOpeningDeclaration();
+      loadPresets();
+    }
+
+    function resetStartPanel() {
+      _selectedStartMode = null;
+      _selectedPreset = null;
+      var nav = document.getElementById('start-nav');
+      if (nav) nav.style.display = 'none';
+      var body = document.querySelector('.start-body');
+      if (body) body.style.display = 'none';
+      var presetList = document.getElementById('start-preset-list');
+      if (presetList) presetList.style.display = 'none';
+      document.querySelectorAll('.start-mode-card').forEach(function (el) { el.classList.remove('selected'); });
+      startSwitchTab('mayor');
+    }
+
+    function showDisclaimer() {
+      var modal = document.getElementById('disclaimer-modal');
+      var content = document.getElementById('disclaimer-content');
+      if (!modal || !content) return;
+      content.innerHTML = '<div class="text-center text-gray-500 py-4">正在加载...</div>';
+      modal.classList.remove('hidden');
+      var checkbox = document.getElementById('disclaimer-dont-show');
+      if (checkbox) checkbox.checked = false;
+      fetch('使用说明与免责声明.txt', { cache: 'no-cache' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.text();
+        })
+        .then(function (text) {
+          text = text.trim();
+          content.innerHTML = text ?
+            '<div class="space-y-2">' + text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>') + '</div>' :
+            '<p class="text-center text-gray-500">未找到使用说明文本。</p>';
+        })
+        .catch(function () {
+          content.innerHTML = '<p class="text-center text-gray-500">未找到使用说明文本（"使用说明与免责声明.txt"文件不存在）。</p>';
+        });
+    }
+
+    function closeDisclaimer() {
+      var modal = document.getElementById('disclaimer-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function acceptDisclaimer() {
+      var checkbox = document.getElementById('disclaimer-dont-show');
+      if (checkbox && checkbox.checked) {
+        localStorage.setItem('disclaimer_accepted', '1');
+      }
+      closeDisclaimer();
     }
 
     function clearAllData() {
@@ -4970,8 +5296,10 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
 
         // 无存档时显示开局面板
         if (!loaded) {
+          resetStartPanel();
           document.getElementById('start-panel').style.display = 'flex';
           loadOpeningDeclaration();
+          loadPresets();
         }
 
         if (!getConfig().key) setTimeout(toggleSettings, 500);
@@ -5029,6 +5357,11 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
 
         console.log('页面初始化完成！');
         logInfo('页面初始化完成 ' + (loaded ? '从存档加载' : '新游戏') + ' 回合=' + turnCount);
+
+        // 首次打开时显示使用说明与免责声明
+        if (!localStorage.getItem('disclaimer_accepted')) {
+          showDisclaimer();
+        }
       } catch (e) {
         logError('初始化失败: ' + e.message);
         console.error('初始化失败:', e);
@@ -5091,12 +5424,37 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       </div>
     </div>
   </div>
+  <!-- 使用说明与免责声明 -->
+  <div id="disclaimer-modal" class="fixed inset-0 z-[100] hidden" style="background:rgba(0,0,0,0.7)">
+    <div class="relative w-full h-full flex items-center justify-center p-4"
+      onclick="if(event.target===this)closeDisclaimer()">
+      <div class="bg-amber-50 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col border-2 border-[#8b5a2b]"
+        style="box-shadow:0 8px 32px rgba(0,0,0,0.5)">
+        <div
+          class="flex justify-between items-center p-4 border-b border-[#8b5a2b]/20 bg-[#8b5a2b] text-white rounded-t-xl">
+          <h2 class="text-lg font-bold">📋 使用说明与免责声明</h2>
+          <button onclick="closeDisclaimer()"
+            class="text-white/80 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+        <div id="disclaimer-content"
+          class="p-5 overflow-y-auto flex-1 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap"></div>
+        <div class="p-4 border-t border-[#8b5a2b]/20 text-center">
+          <label class="inline-flex items-center cursor-pointer mb-3">
+            <input type="checkbox" id="disclaimer-dont-show" class="mr-2 w-4 h-4 accent-[#8b5a2b]">
+            <span class="text-sm text-gray-600">不再显示此提示</span>
+          </label><br>
+          <button onclick="acceptDisclaimer()"
+            class="bg-[#8b5a2b] hover:opacity-80 text-white py-2 px-8 rounded-lg font-bold">我已阅读并同意</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- 日志开关按钮 -->
   <button id="btn-toggle-log" onclick="toggleLogPanel()" title="运行日志"
     style="position:fixed;bottom:24px;right:16px;z-index:301;background:#333;color:#ccc;border:1px solid #555;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3)">📋</button>
   <div style="text-align:center;padding:8px 0;font-size:10px;color:#bbb;user-select:none">AI City Simulator ·
     Pre-alpha
-    0.2</div>
+    0.4</div>
 </body>
 
 </html>
