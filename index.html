@@ -2321,27 +2321,135 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
         el.classList.toggle('selected', i === idx);
       });
       var preset = _presets[idx];
-      var bgCustom = document.getElementById('start-bg-custom');
-      document.getElementById('start-city-name').value = preset.cityName || '';
-      document.getElementById('start-city-symbol').value = '';
-      document.getElementById('start-era').value = preset.year ? preset.year + '年代' : '';
-      document.getElementById('start-mayor-origin').value = preset.playerIdentity || '';
-      var bgRadio = document.querySelector('input[name="start-bg"][value="自定义"]');
-      if (bgRadio) {
-        bgRadio.checked = true;
-        var parent = bgRadio.closest('.start-radio-group');
-        if (parent) {
-          parent.querySelectorAll('.start-radio-opt').forEach(function (opt) { opt.classList.remove('selected'); });
-          bgRadio.closest('.start-radio-opt').classList.add('selected');
+      // 直接启动预设开局，不填充表单
+      launchPresetGame(preset);
+    }
+
+    function launchPresetGame(preset) {
+      // 检查API配置
+      var apiUrl = localStorage.getItem('aic_api_url') || '';
+      var apiKey = localStorage.getItem('aic_api_key') || '';
+      if (!apiUrl || !apiKey) {
+        alert('请先在设置中配置DeepSeek API。点击右上角⚙️按钮进行配置。');
+        return;
+      }
+      // 构建预设开局的文本内容
+      var presetContent = '# ' + preset.title + '\n\n';
+      if (preset.cityBg) {
+        presetContent += '## 城市背景\n' + preset.cityBg + '\n\n';
+      }
+      if (preset.cityData) {
+        presetContent += '## 城市数据\n' + preset.cityData + '\n\n';
+      }
+      if (preset.playerIdentity) {
+        presetContent += '## 玩家身份\n' + preset.playerIdentity + '\n\n';
+      }
+      if (preset.quote) {
+        presetContent += '> ' + preset.quote + '\n';
+      }
+      var btn = document.getElementById('start-btn-launch');
+      var statusEl = document.getElementById('start-launch-status');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ AI正在生成开局...'; }
+      if (statusEl) statusEl.textContent = '正在调用DeepSeek API，请稍候...';
+      // 构建消息
+      var startSysContent = START_SYSTEM_PROMPT;
+      var customPrompt = localStorage.getItem('aic_custom_prompt') || '';
+      if (customPrompt) startSysContent += '\n\n# 玩家自定义指令\n' + customPrompt;
+      var messages = [
+        { role: 'system', content: startSysContent },
+        { role: 'user', content: '【开局初始化请求】请根据以下预设剧本生成完整的初始城市状态JSON。\n\n⚠️ 重要：这是首次生成，必须返回JSON全部字段的真实数据！\n- header/macro/demo/land/econ/fiscal/admin/council/city/npc/mayor/news/notes 每个字段都必须有值\n- 所有数组（districts, exports, imports, facilities, classes, projects, groups, npc, policies等）必须包含合理的数据项，不能为空数组\n- 禁止省略任何字段、禁止使用null或空字符串占位\n\n预设剧本：\n' + presetContent + '\n\n请严格按照标准JSON格式输出完整数据。' }
+      ];
+      var proModel = localStorage.getItem('aic_pro_model');
+      var apiModel = proModel || localStorage.getItem('aic_api_model') || 'deepseek-reasoner';
+      // 保存开局快照，供刷新使用
+      refreshSnapshot = { isOpening: true, messages: messages.map(function (m) { return { role: m.role, content: m.content }; }), apiModel: apiModel, appointmentText: presetContent };
+      // 调用AI（streaming模式，max_tokens提升到16384以容纳完整初始数据）
+      var startNarrativeEl = document.getElementById('narrative-box');
+      if (startNarrativeEl) startNarrativeEl.innerHTML = '<p class="text-gray-500 typing-cursor">AI 正在生成初始城市状态（数据量大，请耐心等待）...</p>';
+      // 先切换到游戏界面
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      var fullContent = '';
+      var finishReason = '';
+      var decoder = new TextDecoder();
+      fetch(apiUrl + '/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+        body: JSON.stringify({ model: apiModel, messages: messages, temperature: 0.7, max_tokens: 16384, stream: true })
+      }).then(function (res) {
+        if (!res.ok) throw new Error('API请求失败: ' + res.status + ' ' + res.statusText);
+        var reader = res.body.getReader();
+        function pump() {
+          return reader.read().then(function (result) {
+            if (result.done) return finishStart();
+            var chunk = decoder.decode(result.value, { stream: true });
+            var lines = chunk.split('\n');
+            lines.forEach(function (line) {
+              line = line.trim();
+              if (!line || !line.startsWith('data:')) return;
+              var payload = line.substring(5).trim();
+              if (payload === '[DONE]') return;
+              try { var j = JSON.parse(payload); if (j.choices && j.choices[0]) { if (j.choices[0].delta && j.choices[0].delta.content) fullContent += j.choices[0].delta.content; if (j.choices[0].finish_reason) finishReason = j.choices[0].finish_reason; } } catch (e) { }
+            });
+            return pump();
+          });
         }
+        return pump();
+      }).catch(function (err) {
+        throw err;
+      });
+
+      function finishStart() {
+        if (finishReason === 'length' && statusEl) statusEl.textContent += ' ⚠️ 响应可能被截断，正在修复...';
+        if (!fullContent) throw new Error('AI返回内容为空');
+        displayTokenInfo({ prompt_tokens: 0, completion_tokens: 0 });
+        // 解析JSON - 多策略提取（含截断修复）
+        var newState;
+        try { newState = extractJSON(fullContent); } catch (parseErr) {
+          console.warn('首次解析失败，尝试截断修复:', parseErr.message);
+          try { newState = extractJSON(fullContent); } catch (e2) { throw new Error('JSON解析失败：' + e2.message); }
+        }
+        // 检查并补全缺失字段
+        var missingFields = [];
+        var requiredFields = ['header', 'macro', 'demo', 'land', 'econ', 'fiscal', 'admin', 'council', 'city', 'npc', 'news'];
+        requiredFields.forEach(function (f) { if (!newState[f]) missingFields.push(f); });
+        if (missingFields.length > 0 || !newState.header || !newState.macro) {
+          console.warn('开局返回缺失字段:', missingFields.length ? missingFields : '(header/macro)');
+          // 用DEFAULT_STATE填充缺失的顶级字段
+          var defaults = JSON.parse(JSON.stringify(DEFAULT_STATE));
+          requiredFields.forEach(function (f) { if (!newState[f] && defaults[f]) newState[f] = defaults[f]; });
+          if (!newState.city_map) newState.city_map = defaults.city_map;
+          if (!newState.next_actions) newState.next_actions = [];
+          if (newState.macro && !newState.macro.mayor_name && newState.mayor) newState.macro.mayor_name = newState.mayor.name;
+        }
+        // 深拷贝替换gameState
+        gameState = JSON.parse(JSON.stringify(newState));
+        _prevGameTimeStr = ''; // 新游戏：重置新闻时间追踪，首回合全部更新
+        // 重置回合计数和记忆
+        turnCount = 0;
+        historyDecisions = [];
+        fullHistory = [];
+        chartData = { labels: ['初始'], gdp: [gameState.macro.total_gdp || 3.2], support: [gameState.macro.mayor_support || 65] };
+        lastChartMonth = '';
+        popGrowthHistory = [];
+        shortTermMemory = [];
+        longTermMemory = [];
+        lastUserMessage = null;
+        lastAssistantMessage = null;
+        // 重置NPC模块
+        pinnedNPCs = [];
+        broadcastSegments = [];
+        _npcLifeLastDay = '';
+        _broadcastLastDay = '';
+        // 保存存档
+        saveGame();
+        // 渲染界面
+        render();
+        // 检查是否需要初始化NPC生活和广播
+        checkDailyUpdates();
+        // 恢复按钮状态
+        if (btn) { btn.disabled = false; btn.textContent = '🚀 开始游戏（AI生成开局）'; }
       }
-      if (bgCustom) {
-        bgCustom.style.display = '';
-        bgCustom.value = preset.cityBg || '';
-      }
-      document.getElementById('start-nav').style.display = '';
-      document.querySelector('.start-body').style.display = '';
-      startSwitchTab('mayor');
     }
 
     function startSwitchTabInternal(tabId) {
