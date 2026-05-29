@@ -510,6 +510,15 @@
       }
     }
 
+    #broadcast-track {
+      animation: broadcast-scroll 25s linear infinite;
+      will-change: transform;
+    }
+
+    #broadcast-bar {
+      overflow: hidden;
+    }
+
     #broadcast-bar::before,
     #broadcast-bar::after {
       content: '';
@@ -931,6 +940,9 @@
               <div id="standalone-file-result" class="text-xs text-center mt-2"></div>
             </div>
           </div>
+          <button onclick="openNPClifeModal()"
+            class="px-3 py-1 bg-orange-200 hover:bg-orange-300 rounded-lg text-sm text-[#d35400] font-bold border border-[#d35400]/30">👁️
+            市井百态</button>
           <button onclick="resetGame()"
             class="px-3 py-1 bg-amber-200 hover:bg-amber-300 rounded-lg text-sm text-[#8b5a2b] font-bold border border-[#8b5a2b]/30">🔄
             新游戏</button>
@@ -1100,10 +1112,10 @@
             class="bg-amber-100/90 rounded-lg border border-[#8b5a2b]/20 mb-3 p-3 text-sm shrink-0"></div>
           <!-- 广播字幕滚动 -->
           <div id="broadcast-bar"
-            class="bg-gradient-to-r from-[#1a5276] via-[#2874a6] to-[#1a5276] text-white rounded-lg mb-3 p-2 shrink-0 overflow-hidden relative"
-            style="height:42px">
-            <div id="broadcast-track" class="absolute white-space-nowrap"
-              style="white-space:nowrap;animation:broadcast-scroll 40s linear infinite;top:50%;transform:translateY(-50%);left:0">
+            class="bg-gradient-to-r from-[#1a5276] via-[#2874a6] to-[#1a5276] text-white rounded-lg mb-3 p-2 shrink-0"
+            style="height:42px;overflow:hidden;position:relative">
+            <div id="broadcast-track" class="absolute"
+              style="white-space:nowrap;top:50%;transform:translateY(-50%);left:0">
               <span id="broadcast-text" class="text-sm font-medium tracking-wide"></span>
             </div>
           </div>
@@ -1149,17 +1161,6 @@
             </summary>
             <div id="history-sidebar" class="px-3 pb-3 space-y-2 overflow-y-auto scrollbar-thin text-xs"
               style="max-height:160px"></div>
-          </details>
-          <details class="bg-orange-100/95 rounded-lg border border-[#d35400]/30"
-            style="box-shadow:2px 2px 5px rgba(0,0,0,0.2)">
-            <summary
-              class="p-3 cursor-pointer text-[#d35400] font-bold font-cyber list-none flex justify-between items-center">
-              <span><i class="fa fa-eye mr-1"></i> 市井百态</span><i class="fa fa-chevron-down text-xs"></i>
-            </summary>
-            <div class="px-3 pb-3">
-              <div id="npc-life-list" class="space-y-2 overflow-y-auto scrollbar-thin" style="max-height:220px"></div>
-              <div id="npc-life-refresh-area" class="mt-2 text-center"></div>
-            </div>
           </details>
         </div>
       </div>
@@ -4112,10 +4113,12 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
     function generateBroadcastContent() {
       var c = getConfig();
       if (!c.key) return;
-      var currentContent = broadcastSegments.join('\n');
       var cityInfo = '城市：' + (gameState.header.location || '') + '，时间：' + (gameState.header.time || '');
+      var city = gameState.city || {};
       var macro = gameState.macro || {};
-      var prompt = '你是城市电台的主持人，生成一段轻松的社会广播内容。\n\n要求：\n1. 内容包括：娱乐八卦（如某位歌星的新专辑）、社会热点（如某处新开的集市）、时尚风尚（如本季流行什么颜色）、生活小贴士、天气预报等\n2. 语气轻松愉快，像真实的电台广播\n3. 总字数控制在200字以内，分3-5个独立段落\n4. **绝对不要**提及任何具体政策、改革、财政、税收、建设项目等与玩家决策相关的内容\n5. 可以隐晦地反映一些城市氛围（如"最近街上的气氛似乎有些紧张"而非"因为税收增加导致..."）\n6. 用中文输出，每段用|分隔\n\n格式：段落1|段落2|段落3\n\n当前城市状态（仅供隐晦参考，不要直接提及）：' + cityInfo + '\n当前氛围：' + (macro.political_stability ? '政治稳定度' + macro.political_stability : '稳定') + '，经济状态：' + (macro.growth_rate || '正常');
+      var econ = gameState.econ || {};
+      var eraHint = city.face || city.geo_text || '';
+      var prompt = '你是城市电台的主持人，根据城市时代背景生成社会广播内容。\n\n要求：\n1. **推断城市所处时代**：根据城市信息判断（如：古典城邦/中世纪/近现代/架空世界观），内容风格须贴合该时代\n2. **内容类型**（选3-5项）：\n   - 时代流行风尚（古典乐/爵士乐/摇滚乐/街头潮流视时代而定）\n   - 社会热点（集市公告/新政传闻/舆论热议/社交话题）\n   - 时尚文化（衣着/饮食/娱乐/休闲方式）\n   - 天气预报与生活贴士（结合时代背景，如马车路况/交通实况）\n   - 名人动态（歌者/文人/贵族/球星/意见领袖视时代而定）\n   - 趣闻逸事\n3. 语气贴合时代（如：古典风格端庄典雅/近现代轻松活泼/架空世界奇幻有趣）\n4. **绝对不要**提及任何具体政策、改革、财政、税收、建设项目等\n5. 可以隐晦反映城市氛围（如"近日坊间议论纷纷"而非"因为XX政策"）\n6. 150字以内，分段用|分隔，中文输出\n\n格式：段落1|段落2|段落3\n\n背景信息：' + cityInfo + '\n城市特色：' + eraHint + '\n经济状态（仅供氛围参考）：' + (macro.growth_rate || '平稳') + '，' + (macro.unemployment || '');
       fetch(c.url + '/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' },
@@ -4132,14 +4135,26 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
         }).catch(function (err) { console.warn('广播生成失败:', err); });
     }
 
-    // ==================== 市井百态：NPC生活观察 ====================
+    // ==================== 市井百态：NPC生活观察（浮动面板模式） ====================
+    function openNPClifeModal() {
+      var modal = document.getElementById('npc-life-modal');
+      if (!modal) return;
+      renderNPCLifeList();
+      modal.classList.remove('hidden');
+    }
+
+    function closeNPClifeModal() {
+      var modal = document.getElementById('npc-life-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
     function renderNPCLifeList() {
-      var el = document.getElementById('npc-life-list');
-      var area = document.getElementById('npc-life-refresh-area');
+      var el = document.getElementById('npc-life-content');
+      var actions = document.getElementById('npc-life-modal-actions');
       if (!el) return;
       if (pinnedNPCs.length === 0) {
-        el.innerHTML = '<p class="text-xs text-gray-500 text-center py-3">暂无钉选的观察对象。<br>点击下方按钮生成候选名单，从中选择感兴趣的市民进行观察。</p>';
-        if (area) area.innerHTML = '<button onclick="generateNPCCandidates()" class="text-xs bg-[#d35400] hover:opacity-80 text-white py-1 px-3 rounded-lg">🔍 生成观察候选名单</button>';
+        el.innerHTML = '<p class="text-sm text-gray-500 text-center py-6">暂无钉选的观察对象。<br>点击下方按钮添加第一个观察对象。</p>';
+        if (actions) actions.innerHTML = '<button onclick="addNewNPCCard()" class="bg-[#d35400] hover:opacity-80 text-white py-2 px-4 rounded-lg font-bold text-sm">➕ 添加观察对象</button>';
         return;
       }
       var html = '';
@@ -4147,26 +4162,35 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
         var latest = npc.dailyLog && npc.dailyLog.length > 0 ? npc.dailyLog[npc.dailyLog.length - 1] : null;
         var lastDay = latest ? latest.day : '尚未更新';
         var lastText = latest ? latest.text : '等待首日记录...';
-        html += '<div class="bg-orange-50 rounded p-2 border border-[#d35400]/20">';
-        html += '<div class="flex justify-between items-start mb-1">';
-        html += '<div><p class="text-xs font-bold text-[#d35400]">' + npc.name + '</p><p class="text-xs text-gray-500">' + npc.job + ' · ' + npc.age + '岁</p></div>';
-        html += '<button onclick="removePinnedNPC(' + idx + ')" class="text-gray-400 hover:text-red-500 text-xs">✕</button>';
-        html += '</div>';
-        html += '<div class="text-xs text-gray-600 mt-1">';
-        html += '<p class="font-semibold text-[10px] text-gray-500 mb-0.5">📅 ' + lastDay + '</p>';
-        html += '<p class="leading-relaxed">' + lastText + '</p>';
-        html += '</div>';
+        html += '<div class="bg-white rounded-lg p-3 border border-[#d35400]/20 shadow-sm">';
+        html += '<div class="flex justify-between items-start mb-2">';
+        html += '<div><p class="font-bold text-[#d35400]">' + npc.name + '</p><p class="text-xs text-gray-500">' + npc.job + ' · ' + npc.age + '岁 · ' + (npc.trait || '') + '</p></div>';
+        html += '<div class="flex items-center gap-2">';
+        html += '<label class="flex items-center text-xs text-blue-600 cursor-pointer"><input type="checkbox" class="npc-refresh-cb mr-1" value="' + idx + '"' + (npc.pendingRefresh ? ' checked' : '') + '>下回合换人</label>';
+        html += '<button onclick="removePinnedNPC(' + idx + ')" class="text-gray-400 hover:text-red-500 text-xs px-1">✕</button>';
+        html += '</div></div>';
+        html += '<p class="text-[10px] text-gray-400 mb-1">📅 ' + lastDay + '</p>';
+        html += '<p class="text-sm text-gray-700 leading-relaxed">' + lastText + '</p>';
         if (npc.dailyLog && npc.dailyLog.length > 3) {
-          html += '<details class="mt-1"><summary class="text-[10px] text-gray-400 cursor-pointer">查看历史(' + (npc.dailyLog.length - 1) + '条)</summary>';
+          html += '<details class="mt-2"><summary class="text-xs text-gray-400 cursor-pointer">查看历史(' + (npc.dailyLog.length - 1) + '条)</summary>';
           npc.dailyLog.slice(0, -1).reverse().forEach(function (log) {
-            html += '<p class="text-[10px] text-gray-400 mt-0.5"><span class="font-semibold">' + log.day + ':</span> ' + log.text + '</p>';
+            html += '<p class="text-xs text-gray-400 mt-1"><span class="font-semibold">' + log.day + ':</span> ' + log.text + '</p>';
           });
           html += '</details>';
         }
         html += '</div>';
       });
       el.innerHTML = html;
-      if (area) area.innerHTML = '<button onclick="generateNPCCandidates()" class="text-xs bg-[#d35400] hover:opacity-80 text-white py-1 px-3 rounded-lg mr-2">🔍 更新候选名单</button>' + (npcLifeCandidates.length > 0 ? '<button onclick="showNPCCandidateModal()" class="text-xs bg-green-600 hover:opacity-80 text-white py-1 px-3 rounded-lg">➕ 钉选新对象</button>' : '');
+      document.querySelectorAll('.npc-refresh-cb').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+          var idx = parseInt(this.value);
+          pinnedNPCs[idx].pendingRefresh = this.checked;
+          saveGame();
+        });
+      });
+      if (actions) {
+        actions.innerHTML = '<button onclick="addNewNPCCard()" class="bg-[#d35400] hover:opacity-80 text-white py-2 px-4 rounded-lg font-bold text-sm">➕ 添加观察对象</button>';
+      }
     }
 
     function removePinnedNPC(idx) {
@@ -4176,78 +4200,15 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       renderNPCLifeList();
     }
 
-    function generateNPCCandidates() {
-      var c = getConfig();
-      if (!c.key) { toggleSettings(); alert('请先配置API Key'); return; }
-      var area = document.getElementById('npc-life-refresh-area');
-      if (area) area.innerHTML = '<span class="text-xs text-gray-500">⏳ 生成候选中...</span>';
-      var cityName = gameState.header.location || '这座城市';
-      var pop = (gameState.demo || {}).population || '数万';
-      var econ = gameState.econ || {};
-      var jobs = [];
-      if (econ.facilities) econ.facilities.forEach(function (f) { if (f.type) jobs.push(f.type); });
-      if (jobs.length === 0) jobs = ['工厂工人', '小商贩', '服务员', '清洁工', '出租车司机', '快递员', '摊贩', '保安'];
-      var prompt = '你是城市社会学研究者，生成5个真实的底层市民档案供观察研究。\n\n要求：\n1. **必须是底层普通市民**：工人、小贩、服务员、摊贩、保安、清洁工等，**绝对不能是官员、商人、贵族、名人**\n2. 每个人物包含：name(姓名)、age(年龄20-60)、job(职业)、trait(一个性格特征)、background(一句话背景)\n3. 姓名要接地气，符合城市背景\n4. JSON数组格式：[{name,age,job,trait,background}]\n5. 只输出JSON，不要其他文字\n\n参考职业池：' + jobs.join('、') + '\n城市：' + cityName + '，人口：' + pop;
-      fetch(c.url + '/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: c.model || 'deepseek-chat', messages: [{ role: 'user', content: prompt }], max_tokens: 1200, stream: false })
-      }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(function (data) {
-          var text = (data.choices[0].message.content || '').trim();
-          var jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/(\[[\s\S]*\])/);
-          if (!jsonMatch) throw new Error('未找到JSON');
-          npcLifeCandidates = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-          if (!Array.isArray(npcLifeCandidates) || npcLifeCandidates.length === 0) throw new Error('解析失败');
-          if (pinnedNPCs.length === 0) {
-            showNPCCandidateModal();
-          } else {
-            if (area) area.innerHTML = '<button onclick="generateNPCCandidates()" class="text-xs bg-[#d35400] hover:opacity-80 text-white py-1 px-3 rounded-lg mr-2">🔍 更新候选名单</button><button onclick="showNPCCandidateModal()" class="text-xs bg-green-600 hover:opacity-80 text-white py-1 px-3 rounded-lg">➕ 钉选新对象</button>';
-          }
-        }).catch(function (err) {
-          console.error('NPC候选生成失败:', err);
-          if (area) area.innerHTML = '<button onclick="generateNPCCandidates()" class="text-xs bg-[#d35400] hover:opacity-80 text-white py-1 px-3 rounded-lg">🔍 重新生成</button>';
-          alert('生成失败：' + err.message);
-        });
-    }
-
-    function showNPCCandidateModal() {
-      if (npcLifeCandidates.length === 0) { alert('请先生成候选名单'); return; }
-      var html = '<div id="npc-candidate-modal" class="fixed inset-0 z-50 items-center justify-center modal-overlay" style="display:flex">';
-      html += '<div class="bg-orange-50 rounded-xl p-6 max-w-md w-full mx-4 border-2 border-[#d35400]" style="box-shadow:5px 5px 15px rgba(0,0,0,0.3)">';
-      html += '<div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold text-[#d35400]">👁️ 选择观察对象</h2><button onclick="document.getElementById(\'npc-candidate-modal\').style.display=\'none\'" class="text-gray-500 hover:text-red-500 text-2xl">&times;</button></div>';
-      html += '<p class="text-xs text-gray-600 mb-3">请从以下普通市民中选择您想要持续观察的对象（可多选）：</p>';
-      npcLifeCandidates.forEach(function (npc, idx) {
-        html += '<label class="flex items-start p-2 rounded-lg border border-[#d35400]/20 hover:bg-orange-100 cursor-pointer mb-2">';
-        html += '<input type="checkbox" class="npc-cb mt-1 mr-2" value="' + idx + '">';
-        html += '<div><p class="text-sm font-bold text-[#d35400]">' + npc.name + ' <span class="font-normal text-gray-500">' + npc.age + '岁 · ' + npc.job + '</span></p>';
-        html += '<p class="text-xs text-gray-500">' + npc.trait + '</p>';
-        html += '<p class="text-xs text-gray-400 mt-0.5">' + npc.background + '</p></div>';
-        html += '</label>';
-      });
-      html += '<div class="flex justify-between mt-4"><button onclick="confirmNPCCandidates()" class="flex-1 mr-2 bg-[#d35400] hover:opacity-80 text-white py-2 rounded-lg font-bold">✅ 确认钉选</button><button onclick="document.getElementById(\'npc-candidate-modal\').style.display=\'none\'" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg font-bold">取消</button></div>';
-      html += '</div></div>';
-      var old = document.getElementById('npc-candidate-modal');
-      if (old) old.remove();
-      document.body.insertAdjacentHTML('beforeend', html);
-    }
-
-    function confirmNPCCandidates() {
-      var cbs = document.querySelectorAll('.npc-cb:checked');
-      if (cbs.length === 0) { alert('请至少选择一名观察对象'); return; }
-      cbs.forEach(function (cb) {
-        var idx = parseInt(cb.value);
-        var npc = npcLifeCandidates[idx];
-        var exists = pinnedNPCs.some(function (p) { return p.name === npc.name; });
-        if (!exists) {
-          pinnedNPCs.push({ name: npc.name, age: npc.age, job: npc.job, trait: npc.trait, background: npc.background, dailyLog: [], lastUpdate: '' });
-        }
-      });
-      npcLifeCandidates = [];
-      var modal = document.getElementById('npc-candidate-modal');
-      if (modal) modal.style.display = 'none';
+    function addNewNPCCard() {
+      var idx = pinnedNPCs.length;
+      pinnedNPCs.push({ name: '待定市民' + (idx + 1), age: 0, job: '待定', trait: '', background: '', dailyLog: [], lastUpdate: '', pendingRefresh: true });
       saveGame();
       renderNPCLifeList();
+      setTimeout(function () {
+        var inputs = document.querySelectorAll('.npc-name-input');
+        if (inputs[idx]) { inputs[idx].focus(); inputs[idx].select(); }
+      }, 50);
     }
 
     function updatePinnedNPCDaily() {
@@ -4260,29 +4221,68 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       var today = dayMatch[1] + '年' + dayMatch[2] + '月' + dayMatch[3] + '日';
       if (_npcLifeLastDay === today) return;
       _npcLifeLastDay = today;
-      var npcNames = pinnedNPCs.map(function (n) { return n.name + '(' + n.job + ')'; }).join('、');
+      var needsRefresh = pinnedNPCs.filter(function (n) { return n.pendingRefresh; });
+      var needsDailyUpdate = pinnedNPCs.filter(function (n) { return !n.pendingRefresh; });
       var macro = gameState.macro || {};
       var city = gameState.city || {};
-      var prompt = '你是底层市民生活的观察者，描述以下普通市民今天的日常生活片段。\n\n要求：\n1. 为每个人物生成100字以内的生活片段，描写他们今天的普通生活\n2. **只描写普通市民的日常生活**：早餐、上班路上的见闻、工作内容、下班后的活动等\n3. **可以隐晦地**反映玩家决策带来的影响（如"今天物价涨了，买菜多花了不少钱"而非"因为税收政策..."），但比例控制在10%以内\n4. 每个片段用|分隔，顺序对应人物列表\n5. 语言朴实自然，像真实的人物日记\n6. **绝对不要**写成官员、商人或名人的视角\n\n人物：' + npcNames + '\n城市：' + (gameState.header.location || '') + '\n时间：' + gameTime + '\n当前城市状态（仅供隐晦参考）：' + '\n经济：' + (macro.growth_rate || '正常') + '，' + (macro.unemployment || '') + '\n社会：' + (city.housing || '稳定');
-      fetch(c.url + '/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: c.model || 'deepseek-chat', messages: [{ role: 'user', content: prompt }], max_tokens: 1500, stream: false })
-      }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(function (data) {
-          var text = (data.choices[0].message.content || '').trim();
-          var segments = text.split('|').map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 0; });
-          if (segments.length > 0) {
-            pinnedNPCs.forEach(function (npc, idx) {
-              if (segments[idx]) {
-                npc.dailyLog.push({ day: today, text: segments[idx] });
-                if (npc.dailyLog.length > 30) npc.dailyLog.shift();
+      if (needsDailyUpdate.length > 0) {
+        var npcNames = needsDailyUpdate.map(function (n) { return n.name + '(' + n.job + ')'; }).join('、');
+        var prompt = '你是底层市民生活的观察者，描述以下普通市民今天的日常生活片段。\n\n要求：\n1. 为每个人物生成100字以内的生活片段，描写他们今天的普通生活\n2. **只描写普通市民的日常生活**：早餐、上班路上的见闻、工作内容、下班后的活动等\n3. **可以隐晦地**反映玩家决策带来的影响（如"今天物价涨了，买菜多花了不少钱"而非"因为税收政策..."），但比例控制在10%以内\n4. 每个片段用|分隔，顺序对应人物列表\n5. 语言朴实自然，像真实的人物日记\n6. **绝对不要**写成官员、商人或名人的视角\n\n人物：' + npcNames + '\n城市：' + (gameState.header.location || '') + '\n时间：' + gameTime + '\n当前城市状态（仅供隐晦参考）：' + '\n经济：' + (macro.growth_rate || '正常') + '，' + (macro.unemployment || '') + '\n社会：' + (city.housing || '稳定');
+        fetch(c.url + '/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: c.model || 'deepseek-chat', messages: [{ role: 'user', content: prompt }], max_tokens: 1500, stream: false })
+        }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(function (data) {
+            var text = (data.choices[0].message.content || '').trim();
+            var segments = text.split('|').map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 0; });
+            if (segments.length > 0) {
+              needsDailyUpdate.forEach(function (npc, idx) {
+                if (segments[idx]) {
+                  npc.dailyLog.push({ day: today, text: segments[idx] });
+                  if (npc.dailyLog.length > 30) npc.dailyLog.shift();
+                }
+              });
+              saveGame();
+              renderNPCLifeList();
+            }
+          }).catch(function (err) { console.warn('NPC每日更新失败:', err); });
+      }
+      if (needsRefresh.length > 0) {
+        var cityName = gameState.header.location || '这座城市';
+        var pop = (gameState.demo || {}).population || '数万';
+        var econ = gameState.econ || {};
+        var jobs = [];
+        if (econ.facilities) econ.facilities.forEach(function (f) { if (f.type) jobs.push(f.type); });
+        if (jobs.length === 0) jobs = ['工厂工人', '小商贩', '服务员', '清洁工', '出租车司机', '快递员', '摊贩', '保安'];
+        var existingNames = pinnedNPCs.map(function (n) { return n.name; }).join('、');
+        var prompt = '你是城市社会学研究者，为以下观察槽位生成' + needsRefresh.length + '个新的底层市民档案。\n\n要求：\n1. **必须是底层普通市民**：工人、小贩、服务员、摊贩、保安、清洁工等，**绝对不能是官员、商人、贵族、名人**\n2. 每个人物：name(姓名)、age(年龄20-60)、job(职业)、trait(性格特征)、background(一句话背景)\n3. **姓名必须与以下已有市民不同**：' + existingNames + '\n4. JSON数组：[{name,age,job,trait,background}]\n5. 只输出JSON\n\n职业池：' + jobs.join('、') + '\n城市：' + cityName + '，人口：' + pop;
+        fetch(c.url + '/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: c.model || 'deepseek-chat', messages: [{ role: 'user', content: prompt }], max_tokens: 1200, stream: false })
+        }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(function (data) {
+            var text = (data.choices[0].message.content || '').trim();
+            var jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/(\[[\s\S]*\])/);
+            if (!jsonMatch) throw new Error('未找到JSON');
+            var newNPCs = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+            if (!Array.isArray(newNPCs) || newNPCs.length === 0) throw new Error('解析失败');
+            needsRefresh.forEach(function (npc, idx) {
+              if (newNPCs[idx]) {
+                npc.name = newNPCs[idx].name;
+                npc.age = newNPCs[idx].age;
+                npc.job = newNPCs[idx].job;
+                npc.trait = newNPCs[idx].trait || '';
+                npc.background = newNPCs[idx].background || '';
+                npc.pendingRefresh = false;
+                npc.dailyLog = [];
               }
             });
             saveGame();
             renderNPCLifeList();
-          }
-        }).catch(function (err) { console.warn('NPC每日更新失败:', err); });
+          }).catch(function (err) { console.warn('NPC刷新生成失败:', err); });
+      }
     }
 
     function checkDailyUpdates() {
@@ -4341,8 +4341,10 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       var c = getConfig();
       if (!c.key) return;
       var cityInfo = '城市：' + (gameState.header.location || '') + '，时间：' + (gameState.header.time || '');
+      var city = gameState.city || {};
       var macro = gameState.macro || {};
-      var prompt = '你是城市电台主持人，为旧存档迁移生成一段社会广播内容。\n\n要求：\n1. 内容：娱乐八卦、社会热点、时尚风尚、生活小贴士、天气预报等\n2. 语气轻松愉快\n3. 150字以内，分3段，用|分隔\n4. 绝对不要提及任何具体政策、改革、财政等\n5. 格式：段落1|段落2|段落3\n\n城市：' + cityInfo + '，氛围：' + (macro.political_stability || '稳定');
+      var eraHint = city.face || city.geo_text || '';
+      var prompt = '你是城市电台主持人，为旧存档迁移生成一段社会广播内容。\n\n要求：\n1. 根据城市信息推断时代背景（古典/中世纪/近现代/架空），内容贴合时代\n2. 内容：时代流行风尚、社会热点、时尚文化、天气预报与生活贴士、名人动态、趣闻逸事等\n3. 语气贴合时代，150字以内，分3段用|分隔\n4. 绝对不要提及任何具体政策、改革、财政等\n5. 格式：段落1|段落2|段落3\n\n背景：' + cityInfo + '\n城市特色：' + eraHint + '\n氛围：' + (macro.political_stability || '稳定');
       fetch(c.url + '/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' },
@@ -5068,6 +5070,25 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       </div>
     </div>
     <div id="log-content" style="flex:1;overflow-y:auto;padding:4px 12px;white-space:pre-wrap;word-break:break-all">
+    </div>
+  </div>
+  <!-- 市井百态浮动面板 -->
+  <div id="npc-life-modal" class="fixed inset-0 z-50 hidden" style="background:rgba(0,0,0,0.5)">
+    <div class="relative w-full h-full flex items-center justify-center p-4"
+      onclick="if(event.target===this)closeNPClifeModal()">
+      <div class="bg-orange-50 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col border-2 border-[#d35400]"
+        style="box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+        <div class="flex justify-between items-center p-4 border-b border-[#d35400]/20">
+          <h2 class="text-xl font-bold text-[#d35400]">👁️ 市井百态</h2>
+          <button onclick="closeNPClifeModal()"
+            class="text-gray-500 hover:text-red-500 text-2xl leading-none">&times;</button>
+        </div>
+        <div class="p-4 overflow-y-auto flex-1">
+          <p class="text-xs text-gray-500 mb-3">观察底层市民的日常生活。点击下方按钮生成候选名单，从中选择感兴趣的市民进行观察。每回合（每日）会自动更新观察对象的日常记录。</p>
+          <div id="npc-life-content" class="space-y-3"></div>
+          <div id="npc-life-modal-actions" class="mt-4 flex flex-wrap gap-2 justify-center"></div>
+        </div>
+      </div>
     </div>
   </div>
   <!-- 日志开关按钮 -->
