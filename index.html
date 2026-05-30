@@ -2416,7 +2416,7 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       if (customPrompt) startSysContent += '\n\n# 玩家自定义指令\n' + customPrompt;
       var messages = [
         { role: 'system', content: startSysContent },
-        { role: 'user', content: '【开局初始化请求】请根据以下预设剧本生成完整的初始城市状态JSON。\n\n⚠️ 重要：这是首次生成，必须返回JSON全部字段的真实数据！\n- header/macro/demo/land/econ/fiscal/admin/council/city/npc/mayor/news/notes 每个字段都必须有值\n- 所有数组（districts, exports, imports, facilities, classes, projects, groups, npc, policies等）必须包含合理的数据项，不能为空数组\n- 禁止省略任何字段、禁止使用null或空字符串占位\n\n预设剧本：\n' + presetContent + '\n\n请严格按照标准JSON格式输出完整数据。' }
+        { role: 'user', content: '【开局初始化请求】请根据以下预设剧本生成完整的初始城市状态JSON。\n\n⚠️ ⚠️ 【极端重要！】这是首次生成，必须返回JSON全部字段的真实、完整数据！！！\n\n✅ 必须包含的字段（每个字段都必须有真实值）：\n- header/macro/demo/land/econ/fiscal/admin/council/city/npc/mayor/news/notes 所有字段都必须有内容\n\n✅ 特殊强调（最容易缺失的字段）：\n- npc：必须包含至少3-5个NPC角色，每个都要有完整的name/gender/role/expression/appearance/personality/background/stance/action/relation信息\n- news：必须包含city_official/foreign/social/radio四个部分的完整新闻内容\n- 所有数组（districts, exports, imports, facilities, classes, projects, groups, npc, policies等）必须包含合理的数据项，绝对不能是空数组！\n\n✅ 格式要求：\n- 禁止省略任何字段\n- 禁止使用null或空字符串占位\n- JSON格式必须绝对正确\n\n预设剧本：\n' + presetContent + '\n\n请严格按照标准JSON格式输出完整数据。' }
       ];
       var proModel = localStorage.getItem('aic_pro_model');
       var apiModel = proModel || localStorage.getItem('aic_api_model') || 'deepseek-reasoner';
@@ -2480,6 +2480,8 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
         // 深拷贝替换gameState
         gameState = JSON.parse(JSON.stringify(newState));
         _prevGameTimeStr = ''; // 新游戏：重置新闻时间追踪，首回合全部更新
+        // 开局后清除数据缺失检测，避免立即触发补全
+        _missingDataFields = [];
         // 重置回合计数和记忆
         turnCount = 0;
         historyDecisions = [];
@@ -2715,7 +2717,7 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       if (customPrompt) startSysContent += '\n\n# 玩家自定义指令\n' + customPrompt;
       var messages = [
         { role: 'system', content: startSysContent },
-        { role: 'user', content: '【开局初始化请求】请根据以下市长任命档案生成完整的初始城市状态JSON。\n\n⚠️ 重要：这是首次生成，必须返回JSON全部字段的真实数据！\n- header/macro/demo/land/econ/fiscal/admin/council/city/npc/mayor/news/notes 每个字段都必须有值\n- 所有数组（districts, exports, imports, facilities, classes, projects, groups, npc, policies等）必须包含合理的数据项，不能为空数组\n- 禁止省略任何字段、禁止使用null或空字符串占位\n\n市长任命档案：\n' + appointmentText + '\n\n请严格按照标准JSON格式输出完整数据。' }
+        { role: 'user', content: '【开局初始化请求】请根据以下市长任命档案生成完整的初始城市状态JSON。\n\n⚠️ ⚠️ 【极端重要！】这是首次生成，必须返回JSON全部字段的真实、完整数据！！！\n\n✅ 必须包含的字段（每个字段都必须有真实值）：\n- header/macro/demo/land/econ/fiscal/admin/council/city/npc/mayor/news/notes 所有字段都必须有内容\n\n✅ 特殊强调（最容易缺失的字段）：\n- npc：必须包含至少3-5个NPC角色，每个都要有完整的name/gender/role/expression/appearance/personality/background/stance/action/relation信息\n- news：必须包含city_official/foreign/social/radio四个部分的完整新闻内容\n- 所有数组（districts, exports, imports, facilities, classes, projects, groups, npc, policies等）必须包含合理的数据项，绝对不能是空数组！\n\n✅ 格式要求：\n- 禁止省略任何字段\n- 禁止使用null或空字符串占位\n- JSON格式必须绝对正确\n\n市长任命档案：\n' + appointmentText + '\n\n请严格按照标准JSON格式输出完整数据。' }
       ];
       var apiModel = proModel || localStorage.getItem('aic_api_model') || 'deepseek-reasoner';
       // 保存开局快照，供刷新使用
@@ -2779,6 +2781,8 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
         // 深拷贝替换gameState
         gameState = JSON.parse(JSON.stringify(newState));
         _prevGameTimeStr = ''; // 新游戏：重置新闻时间追踪，首回合全部更新
+        // 开局后清除数据缺失检测，避免立即触发补全
+        _missingDataFields = [];
         // 重置回合计数和记忆
         turnCount = 0;
         historyDecisions = [];
