@@ -2808,53 +2808,123 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       }
     }
 
+    // ==================== 数据缺失追踪 ====================
+    var _missingDataFields = []; // 记录缺失的数据字段
+
+    // 检查数据是否为空（空对象、空数组、空字符串、null、undefined）
+    function isEmpty(value) {
+      if (value === null || value === undefined) return true;
+      if (typeof value === 'string' && value.trim() === '') return true;
+      if (Array.isArray(value) && value.length === 0) return true;
+      if (typeof value === 'object' && Object.keys(value).length === 0) return true;
+      return false;
+    }
+
+    // 检查游戏状态数据完整性
+    function checkDataCompleteness() {
+      var missing = [];
+      var requiredFields = [
+        { key: 'header', check: function (s) { return !s.header || isEmpty(s.header.time); }, label: '基本信息(header)' },
+        { key: 'macro', check: function (s) { return !s.macro; }, label: '宏观经济(macro)' },
+        { key: 'demo', check: function (s) { return !s.demo || isEmpty(s.demo.population); }, label: '人口民生(demo)' },
+        { key: 'land', check: function (s) { return !s.land; }, label: '土地环境(land)' },
+        { key: 'econ', check: function (s) { return !s.econ || isEmpty(s.econ.facilities); }, label: '产业经济(econ)' },
+        { key: 'fiscal', check: function (s) { return !s.fiscal; }, label: '财政收支(fiscal)' },
+        { key: 'admin', check: function (s) { return !s.admin || isEmpty(s.admin.districts); }, label: '行政管理(admin)' },
+        { key: 'council', check: function (s) { return !s.council || isEmpty(s.council.groups); }, label: '议会派系(council)' },
+        { key: 'city', check: function (s) { return !s.city; }, label: '城市信息(city)' },
+        { key: 'npc', check: function (s) { return !s.npc || s.npc.length === 0; }, label: 'NPC人物(npc)' },
+        { key: 'mayor', check: function (s) { return !s.mayor || isEmpty(s.mayor.name); }, label: '市长信息(mayor)' },
+        { key: 'news', check: function (s) { return !s.news; }, label: '新闻(news)' },
+        { key: 'narrative', check: function (s) { return isEmpty(s.narrative); }, label: '叙事(narrative)' },
+        { key: 'next_actions', check: function (s) { return !s.next_actions || s.next_actions.length === 0; }, label: '后续行动(next_actions)' }
+      ];
+
+      requiredFields.forEach(function (field) {
+        if (field.check(gameState)) {
+          missing.push(field.label);
+        }
+      });
+
+      _missingDataFields = missing;
+      return missing;
+    }
+
+    // 获取数据缺失提示（用于发送给AI）
+    function getMissingDataPrompt() {
+      if (_missingDataFields.length === 0) return '';
+      return '\n\n# 数据补全指令\n检测到以下数据字段缺失或不完整：[' + _missingDataFields.join('、') + ']\n**请在本次响应中完整生成这些缺失字段的数据**，确保每个字段都有合理的内容。';
+    }
+
     // ==================== JSON 合并 ====================
     function mergeState(newData) {
       if (!newData || typeof newData !== 'object') return;
-      if (newData.header) Object.assign(gameState.header, newData.header);
-      if (newData.narrative) gameState.narrative = newData.narrative;
-      if (newData.macro) Object.assign(gameState.macro, newData.macro);
-      if (newData.demo) Object.assign(gameState.demo, newData.demo);
-      if (newData.land) Object.assign(gameState.land, newData.land);
-      if (newData.econ) {
-        if (newData.econ.facilities) gameState.econ.facilities = newData.econ.facilities;
-        if (newData.econ.exports) gameState.econ.exports = newData.econ.exports;
-        if (newData.econ.imports) gameState.econ.imports = newData.econ.imports;
-        if (newData.econ.classes) gameState.econ.classes = newData.econ.classes;
+
+      // 使用 Object.assign 进行合并，不会覆盖未提供的字段
+      if (newData.header && !isEmpty(newData.header)) Object.assign(gameState.header, newData.header);
+
+      // 只有当新数据非空时才替换
+      if (newData.narrative && !isEmpty(newData.narrative)) gameState.narrative = newData.narrative;
+
+      if (newData.macro && !isEmpty(newData.macro)) Object.assign(gameState.macro, newData.macro);
+      if (newData.demo && !isEmpty(newData.demo)) Object.assign(gameState.demo, newData.demo);
+      if (newData.land && !isEmpty(newData.land)) Object.assign(gameState.land, newData.land);
+
+      if (newData.econ && !isEmpty(newData.econ)) {
+        if (newData.econ.facilities && newData.econ.facilities.length > 0) gameState.econ.facilities = newData.econ.facilities;
+        if (newData.econ.exports && newData.econ.exports.length > 0) gameState.econ.exports = newData.econ.exports;
+        if (newData.econ.imports && newData.econ.imports.length > 0) gameState.econ.imports = newData.econ.imports;
+        if (newData.econ.classes && newData.econ.classes.length > 0) gameState.econ.classes = newData.econ.classes;
       }
-      if (newData.fiscal) {
-        if (newData.fiscal.total_expense) gameState.fiscal.total_expense = newData.fiscal.total_expense;
-        if (newData.fiscal.total_income) gameState.fiscal.total_income = newData.fiscal.total_income;
-        if (newData.fiscal.expense_items) gameState.fiscal.expense_items = newData.fiscal.expense_items;
-        if (newData.fiscal.income_items) gameState.fiscal.income_items = newData.fiscal.income_items;
+
+      if (newData.fiscal && !isEmpty(newData.fiscal)) {
+        if (newData.fiscal.total_expense != null) gameState.fiscal.total_expense = newData.fiscal.total_expense;
+        if (newData.fiscal.total_income != null) gameState.fiscal.total_income = newData.fiscal.total_income;
+        if (newData.fiscal.expense_items && newData.fiscal.expense_items.length > 0) gameState.fiscal.expense_items = newData.fiscal.expense_items;
+        if (newData.fiscal.income_items && newData.fiscal.income_items.length > 0) gameState.fiscal.income_items = newData.fiscal.income_items;
       }
-      if (newData.admin) {
-        if (newData.admin.districts) gameState.admin.districts = newData.admin.districts;
-        if (newData.admin.departments) gameState.admin.departments = newData.admin.departments;
-        if (newData.admin.projects) gameState.admin.projects = newData.admin.projects;
-        if (newData.admin.civil_servants) gameState.admin.civil_servants = newData.admin.civil_servants;
-        if (newData.admin.admin_load) gameState.admin.admin_load = newData.admin.admin_load;
-        if (newData.admin.corruption) gameState.admin.corruption = newData.admin.corruption;
+
+      if (newData.admin && !isEmpty(newData.admin)) {
+        if (newData.admin.districts && newData.admin.districts.length > 0) gameState.admin.districts = newData.admin.districts;
+        if (newData.admin.departments && Object.keys(newData.admin.departments).length > 0) gameState.admin.departments = newData.admin.departments;
+        if (newData.admin.projects && newData.admin.projects.length > 0) gameState.admin.projects = newData.admin.projects;
+        if (newData.admin.civil_servants && newData.admin.civil_servants.length > 0) gameState.admin.civil_servants = newData.admin.civil_servants;
+        if (newData.admin.admin_load != null) gameState.admin.admin_load = newData.admin.admin_load;
+        if (newData.admin.corruption != null) gameState.admin.corruption = newData.admin.corruption;
       }
-      if (newData.council?.groups) gameState.council.groups = newData.council.groups;
-      if (newData.city) {
-        if (newData.city.face) gameState.city.face = newData.city.face;
-        if (newData.city.geo_text) gameState.city.geo_text = newData.city.geo_text;
-        if (newData.city.election) gameState.city.election = newData.city.election;
-        if (newData.city.housing) gameState.city.housing = newData.city.housing;
-        if (newData.city.culture) gameState.city.culture = newData.city.culture;
-        if (newData.city.policies) gameState.city.policies = newData.city.policies;
+
+      if (newData.council && newData.council.groups && newData.council.groups.length > 0) {
+        gameState.council.groups = newData.council.groups;
       }
-      if (newData.city_map) mergeCityMap(newData.city_map);
+
+      if (newData.city && !isEmpty(newData.city)) {
+        if (newData.city.face && !isEmpty(newData.city.face)) gameState.city.face = newData.city.face;
+        if (newData.city.geo_text && !isEmpty(newData.city.geo_text)) gameState.city.geo_text = newData.city.geo_text;
+        if (newData.city.election && !isEmpty(newData.city.election)) gameState.city.election = newData.city.election;
+        if (newData.city.housing && !isEmpty(newData.city.housing)) gameState.city.housing = newData.city.housing;
+        if (newData.city.culture && !isEmpty(newData.city.culture)) gameState.city.culture = newData.city.culture;
+        if (newData.city.policies && newData.city.policies.length > 0) gameState.city.policies = newData.city.policies;
+      }
+
+      if (newData.city_map && !isEmpty(newData.city_map)) mergeCityMap(newData.city_map);
       if (newData.city_map_changes && Array.isArray(newData.city_map_changes) && newData.city_map_changes.length > 0) applyMapChanges(newData.city_map_changes);
       if (newData.city_map_new_legend && typeof newData.city_map_new_legend === 'object') mergeMapLegend(newData.city_map_new_legend);
-      if (newData.npc) gameState.npc = newData.npc;
-      if (newData.news) gameState.news = newData.news;
-      if (newData.notes) gameState.notes = newData.notes;
-      if (newData.secretary_reminder) gameState.secretary_reminder = newData.secretary_reminder;
-      if (newData.turn_summary) gameState.turn_summary = newData.turn_summary;
-      if (newData.next_actions) gameState.next_actions = newData.next_actions;
+
+      // NPC、news、notes 只在非空时替换
+      if (newData.npc && newData.npc.length > 0) gameState.npc = newData.npc;
+      if (newData.news && !isEmpty(newData.news)) gameState.news = newData.news;
+      if (newData.notes && !isEmpty(newData.notes)) gameState.notes = newData.notes;
+
+      if (newData.secretary_reminder && !isEmpty(newData.secretary_reminder)) gameState.secretary_reminder = newData.secretary_reminder;
+      if (newData.turn_summary && !isEmpty(newData.turn_summary)) gameState.turn_summary = newData.turn_summary;
+      if (newData.next_actions && newData.next_actions.length > 0) gameState.next_actions = newData.next_actions;
       if (typeof newData.game_over === 'boolean') gameState.game_over = newData.game_over;
+
+      // 检查合并后的数据完整性
+      var missing = checkDataCompleteness();
+      if (missing.length > 0) {
+        logWarn('数据合并后检测到缺失字段: ' + missing.join(', '));
+      }
     }
 
     // ==================== AI 调用 ====================
@@ -2913,6 +2983,16 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
         sysContent += '\n\n# 增量更新建议\n为节省token，你只需返回实际发生变化的字段。未变化的数据无需重复返回。narrative/news/next_actions/turn_summary必须返回新值（news字段未发送旧值，请根据游戏时间自行判断更新）。';
       }
       if (customPrompt) sysContent += '\n\n# 玩家自定义指令\n' + customPrompt;
+
+      // 检查数据缺失并添加补全指令
+      var missingPrompt = getMissingDataPrompt();
+      if (missingPrompt) {
+        sysContent += missingPrompt;
+        // 如果有数据缺失，强制关闭partial模式，要求AI完整生成
+        isPartialMode = false;
+        logInfo('检测到数据缺失，强制完整模式');
+      }
+
       let messages = [
         { role: 'system', content: sysContent }
       ];
@@ -2926,7 +3006,7 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       if (isPartialMode) {
         userPrompt = '【局部城市状态JSON】\n' + stateJson + '\n\n【市长决策】\n' + decision + '\n\n仅返回收到数据类别的字段更新。' + mapEmptyNotice;
       } else {
-        userPrompt = '【城市状态JSON】\n' + stateJson + '\n\n【市长决策】\n' + decision + '\n\n仅输出变化字段，未变化省略。' + mapEmptyNotice;
+        userPrompt = '【城市状态JSON】\n' + stateJson + '\n\n【市长决策】\n' + decision + '\n\n' + (missingPrompt ? '请完整生成所有缺失字段的数据。' : '仅输出变化字段，未变化省略。') + mapEmptyNotice;
       }
       messages.push({ role: 'user', content: userPrompt });
       var modelToUse = selectedModel || c.model;
