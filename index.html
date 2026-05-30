@@ -1390,9 +1390,9 @@
     };
 
     window.chooseNextAction = function (text) {
-      if (typeof chooseNextAction === 'function') {
-        chooseNextAction(text);
-      }
+      var input = document.getElementById('decision-input');
+      input.value = text;
+      input.focus();
     };
 
     window.switchTab = function (name) {
@@ -1871,6 +1871,25 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       });
       logDebug('新闻更新检测: 更新=[' + result.needUpdate.join(',') + '] 保持=[' + result.keepAsIs.join(',') + '] 时间:' + (gameState.header.time || '') + '→上一轮:' + (_prevGameTimeStr || '(无)'));
       return result;
+    }
+
+    // 检查是否跨天（用于触发日程更新）
+    function checkCrossDay() {
+      var now = parseGameTime(gameState.header.time);
+      if (!now) return false;
+      var prev = parseGameTime(_prevGameTimeStr);
+      // 首回合或跨天
+      if (!prev || now.day !== prev.day || now.month !== prev.month) {
+        logInfo('检测到跨天: ' + (_prevGameTimeStr || '初始') + ' → ' + gameState.header.time);
+        return true;
+      }
+      return false;
+    }
+
+    // 获取日程更新指令
+    function getScheduleUpdatePrompt() {
+      if (!checkCrossDay()) return '';
+      return '\n\n# 日程更新指令\n检测到游戏时间已进入新的一天：' + gameState.header.time + '\n**请为市长生成今日的完整日程安排（mayor.schedule）**，包含时间、地点和事件，体现市长当天的工作安排。';
     }
     // ==================== 完整历史存档系统 ====================
     let fullHistory = []; // 完整历史：每回合的 narrative + news + decision
@@ -2984,6 +3003,13 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       }
       if (customPrompt) sysContent += '\n\n# 玩家自定义指令\n' + customPrompt;
 
+      // 添加日程更新指令（跨天更新）
+      var schedulePrompt = getScheduleUpdatePrompt();
+      if (schedulePrompt) {
+        sysContent += schedulePrompt;
+        logInfo('跨天检测：需要更新日程安排');
+      }
+
       // 检查数据缺失并添加补全指令
       var missingPrompt = getMissingDataPrompt();
       if (missingPrompt) {
@@ -3215,11 +3241,6 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
         btn.disabled = false; btn.textContent = '⏭️ 结束回合';
         checkDailyUpdates();
       }
-    }
-    function chooseNextAction(actionText) {
-      var input = document.getElementById('decision-input');
-      input.value = actionText;
-      input.focus();
     }
     function copyToClipboard(text) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
