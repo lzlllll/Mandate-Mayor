@@ -2852,11 +2852,11 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
         { key: 'admin', check: function (s) { return !s.admin || isEmpty(s.admin.districts); }, label: '行政管理(admin)' },
         { key: 'council', check: function (s) { return !s.council || isEmpty(s.council.groups); }, label: '议会派系(council)' },
         { key: 'city', check: function (s) { return !s.city; }, label: '城市信息(city)' },
-        { key: 'npc', check: function (s) { return !s.npc || s.npc.length === 0; }, label: 'NPC人物(npc)' },
+        { key: 'npc', check: function (s) { return !s.npc || !Array.isArray(s.npc) || s.npc.length === 0; }, label: 'NPC人物(npc)' },
         { key: 'mayor', check: function (s) { return !s.mayor || isEmpty(s.mayor.name); }, label: '市长信息(mayor)' },
         { key: 'news', check: function (s) { return !s.news; }, label: '新闻(news)' },
         { key: 'narrative', check: function (s) { return isEmpty(s.narrative); }, label: '叙事(narrative)' },
-        { key: 'next_actions', check: function (s) { return !s.next_actions || s.next_actions.length === 0; }, label: '后续行动(next_actions)' }
+        { key: 'next_actions', check: function (s) { return !s.next_actions || !Array.isArray(s.next_actions) || s.next_actions.length === 0; }, label: '后续行动(next_actions)' }
       ];
 
       requiredFields.forEach(function (field) {
