@@ -71,3 +71,7 @@
 - 修复了一个开局不完整的错误
 ————————Pre-alpha 0.5.4.2
 - 修复了一些错误
+————————Pre-alpha 0.5.5
+# 修复
+1.ai返回部分更新的数据后旧数据删除导致数据残缺的问题
+2.出现Cannot read properties of undefined (reading 'length')

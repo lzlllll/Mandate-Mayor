@@ -2948,64 +2948,98 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
     function mergeState(newData) {
       if (!newData || typeof newData !== 'object') return;
 
-      // 使用 Object.assign 进行合并，不会覆盖未提供的字段
-      if (newData.header && !isEmpty(newData.header)) Object.assign(gameState.header, newData.header);
+      // 深度合并 header，只合并非空属性
+      if (newData.header && typeof newData.header === 'object') {
+        Object.keys(newData.header).forEach(function (key) {
+          if (newData.header[key] != null && !isEmpty(newData.header[key])) {
+            gameState.header[key] = newData.header[key];
+          }
+        });
+      }
 
       // 只有当新数据非空时才替换
       if (newData.narrative && !isEmpty(newData.narrative)) gameState.narrative = newData.narrative;
 
-      if (newData.macro && !isEmpty(newData.macro)) Object.assign(gameState.macro, newData.macro);
-      if (newData.demo && !isEmpty(newData.demo)) Object.assign(gameState.demo, newData.demo);
-      if (newData.land && !isEmpty(newData.land)) Object.assign(gameState.land, newData.land);
-
-      if (newData.econ && !isEmpty(newData.econ)) {
-        if (newData.econ.facilities && newData.econ.facilities.length > 0) gameState.econ.facilities = newData.econ.facilities;
-        if (newData.econ.exports && newData.econ.exports.length > 0) gameState.econ.exports = newData.econ.exports;
-        if (newData.econ.imports && newData.econ.imports.length > 0) gameState.econ.imports = newData.econ.imports;
-        if (newData.econ.classes && newData.econ.classes.length > 0) gameState.econ.classes = newData.econ.classes;
+      // 深度合并 macro、demo、land，只合并非空属性
+      if (newData.macro && typeof newData.macro === 'object') {
+        Object.keys(newData.macro).forEach(function (key) {
+          if (newData.macro[key] != null && !isEmpty(newData.macro[key])) {
+            gameState.macro[key] = newData.macro[key];
+          }
+        });
+      }
+      if (newData.demo && typeof newData.demo === 'object') {
+        Object.keys(newData.demo).forEach(function (key) {
+          if (newData.demo[key] != null && !isEmpty(newData.demo[key])) {
+            gameState.demo[key] = newData.demo[key];
+          }
+        });
+      }
+      if (newData.land && typeof newData.land === 'object') {
+        Object.keys(newData.land).forEach(function (key) {
+          if (newData.land[key] != null && !isEmpty(newData.land[key])) {
+            gameState.land[key] = newData.land[key];
+          }
+        });
       }
 
-      if (newData.fiscal && !isEmpty(newData.fiscal)) {
-        if (newData.fiscal.total_expense != null) gameState.fiscal.total_expense = newData.fiscal.total_expense;
-        if (newData.fiscal.total_income != null) gameState.fiscal.total_income = newData.fiscal.total_income;
-        if (newData.fiscal.expense_items && newData.fiscal.expense_items.length > 0) gameState.fiscal.expense_items = newData.fiscal.expense_items;
-        if (newData.fiscal.income_items && newData.fiscal.income_items.length > 0) gameState.fiscal.income_items = newData.fiscal.income_items;
+      if (newData.econ && typeof newData.econ === 'object') {
+        if (newData.econ.facilities && Array.isArray(newData.econ.facilities) && newData.econ.facilities.length > 0) gameState.econ.facilities = newData.econ.facilities;
+        if (newData.econ.exports && Array.isArray(newData.econ.exports) && newData.econ.exports.length > 0) gameState.econ.exports = newData.econ.exports;
+        if (newData.econ.imports && Array.isArray(newData.econ.imports) && newData.econ.imports.length > 0) gameState.econ.imports = newData.econ.imports;
+        if (newData.econ.classes && Array.isArray(newData.econ.classes) && newData.econ.classes.length > 0) gameState.econ.classes = newData.econ.classes;
       }
 
-      if (newData.admin && !isEmpty(newData.admin)) {
-        if (newData.admin.districts && newData.admin.districts.length > 0) gameState.admin.districts = newData.admin.districts;
-        if (newData.admin.departments && Object.keys(newData.admin.departments).length > 0) gameState.admin.departments = newData.admin.departments;
-        if (newData.admin.projects && newData.admin.projects.length > 0) gameState.admin.projects = newData.admin.projects;
-        if (newData.admin.civil_servants && newData.admin.civil_servants.length > 0) gameState.admin.civil_servants = newData.admin.civil_servants;
-        if (newData.admin.admin_load != null) gameState.admin.admin_load = newData.admin.admin_load;
-        if (newData.admin.corruption != null) gameState.admin.corruption = newData.admin.corruption;
+      if (newData.fiscal && typeof newData.fiscal === 'object') {
+        if (newData.fiscal.total_expense != null && !isEmpty(newData.fiscal.total_expense)) gameState.fiscal.total_expense = newData.fiscal.total_expense;
+        if (newData.fiscal.total_income != null && !isEmpty(newData.fiscal.total_income)) gameState.fiscal.total_income = newData.fiscal.total_income;
+        if (newData.fiscal.expense_items && Array.isArray(newData.fiscal.expense_items) && newData.fiscal.expense_items.length > 0) gameState.fiscal.expense_items = newData.fiscal.expense_items;
+        if (newData.fiscal.income_items && Array.isArray(newData.fiscal.income_items) && newData.fiscal.income_items.length > 0) gameState.fiscal.income_items = newData.fiscal.income_items;
       }
 
-      if (newData.council && newData.council.groups && newData.council.groups.length > 0) {
-        gameState.council.groups = newData.council.groups;
+      if (newData.admin && typeof newData.admin === 'object') {
+        if (newData.admin.districts && Array.isArray(newData.admin.districts) && newData.admin.districts.length > 0) gameState.admin.districts = newData.admin.districts;
+        if (newData.admin.departments && Array.isArray(newData.admin.departments) && newData.admin.departments.length > 0) gameState.admin.departments = newData.admin.departments;
+        if (newData.admin.projects && Array.isArray(newData.admin.projects) && newData.admin.projects.length > 0) gameState.admin.projects = newData.admin.projects;
+        if (newData.admin.civil_servants != null && !isEmpty(newData.admin.civil_servants)) gameState.admin.civil_servants = newData.admin.civil_servants;
+        if (newData.admin.admin_load != null && !isEmpty(newData.admin.admin_load)) gameState.admin.admin_load = newData.admin.admin_load;
+        if (newData.admin.corruption != null && !isEmpty(newData.admin.corruption)) gameState.admin.corruption = newData.admin.corruption;
       }
 
-      if (newData.city && !isEmpty(newData.city)) {
+      if (newData.council && typeof newData.council === 'object') {
+        if (newData.council.groups && Array.isArray(newData.council.groups) && newData.council.groups.length > 0) {
+          gameState.council.groups = newData.council.groups;
+        }
+      }
+
+      if (newData.city && typeof newData.city === 'object') {
         if (newData.city.face && !isEmpty(newData.city.face)) gameState.city.face = newData.city.face;
         if (newData.city.geo_text && !isEmpty(newData.city.geo_text)) gameState.city.geo_text = newData.city.geo_text;
         if (newData.city.election && !isEmpty(newData.city.election)) gameState.city.election = newData.city.election;
         if (newData.city.housing && !isEmpty(newData.city.housing)) gameState.city.housing = newData.city.housing;
         if (newData.city.culture && !isEmpty(newData.city.culture)) gameState.city.culture = newData.city.culture;
-        if (newData.city.policies && newData.city.policies.length > 0) gameState.city.policies = newData.city.policies;
+        if (newData.city.policies && Array.isArray(newData.city.policies) && newData.city.policies.length > 0) gameState.city.policies = newData.city.policies;
       }
 
       if (newData.city_map && !isEmpty(newData.city_map)) mergeCityMap(newData.city_map);
       if (newData.city_map_changes && Array.isArray(newData.city_map_changes) && newData.city_map_changes.length > 0) applyMapChanges(newData.city_map_changes);
       if (newData.city_map_new_legend && typeof newData.city_map_new_legend === 'object') mergeMapLegend(newData.city_map_new_legend);
 
-      // NPC、news、notes 只在非空时替换
-      if (newData.npc && newData.npc.length > 0) gameState.npc = newData.npc;
-      if (newData.news && !isEmpty(newData.news)) gameState.news = newData.news;
+      // NPC、news、notes 只在非空时替换或合并
+      if (newData.npc && Array.isArray(newData.npc) && newData.npc.length > 0) gameState.npc = newData.npc;
+      // 合并新闻数据，保留未更新的新闻
+      if (newData.news && typeof newData.news === 'object') {
+        Object.keys(newData.news).forEach(function (key) {
+          if (newData.news[key] && !isEmpty(newData.news[key])) {
+            gameState.news[key] = newData.news[key];
+          }
+        });
+      }
       if (newData.notes && !isEmpty(newData.notes)) gameState.notes = newData.notes;
 
       if (newData.secretary_reminder && !isEmpty(newData.secretary_reminder)) gameState.secretary_reminder = newData.secretary_reminder;
       if (newData.turn_summary && !isEmpty(newData.turn_summary)) gameState.turn_summary = newData.turn_summary;
-      if (newData.next_actions && newData.next_actions.length > 0) gameState.next_actions = newData.next_actions;
+      if (newData.next_actions && Array.isArray(newData.next_actions) && newData.next_actions.length > 0) gameState.next_actions = newData.next_actions;
       if (typeof newData.game_over === 'boolean') gameState.game_over = newData.game_over;
 
       // 检查合并后的数据完整性
