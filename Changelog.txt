@@ -77,3 +77,5 @@
 2.出现Cannot read properties of undefined (reading 'length')
 ————————Pre-alpha 0.5.6
 - 更新提示词，尝试让ai不把一次性支出/收入列入列表。
+————————Pre-alpha 0.5.7
+- 尝试让ai能有效的更新每日新闻等
