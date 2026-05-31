@@ -2487,7 +2487,7 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       fetch(apiUrl + '/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-        body: JSON.stringify({ model: apiModel, messages: messages, temperature: 0.7, max_tokens: 16384, stream: true })
+        body: JSON.stringify({ model: apiModel, messages: messages, temperature: 0.7, max_tokens: 32768, stream: true })
       }).then(function (res) {
         if (!res.ok) throw new Error('API请求失败: ' + res.status + ' ' + res.statusText);
         var reader = res.body.getReader();
@@ -2796,7 +2796,7 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       fetch(apiUrl + '/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-        body: JSON.stringify({ model: apiModel, messages: messages, temperature: 0.7, max_tokens: 16384, stream: true })
+        body: JSON.stringify({ model: apiModel, messages: messages, temperature: 0.7, max_tokens: 32768, stream: true })
       }).then(function (res) {
         if (!res.ok) throw new Error('API请求失败: ' + res.status + ' ' + res.statusText);
         var reader = res.body.getReader();
@@ -3143,7 +3143,7 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
       var resp = await fetch(c.url + '/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: modelToUse, messages, temperature: 0.8, max_tokens: 8192, stream: true })
+        body: JSON.stringify({ model: modelToUse, messages, temperature: 0.8, max_tokens: 24576, stream: true })
       });
       if (!resp.ok) {
         const e = await resp.json().catch(() => ({}));
@@ -3559,7 +3559,7 @@ news含4源，各有固定名称和风格。**news不在输入中发送上轮值
         var resp = await fetch(apiUrl + '/chat/completions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-          body: JSON.stringify({ model: modelToUse, messages: snapshot.messages, stream: true, temperature: 0.7, max_tokens: 16384 })
+          body: JSON.stringify({ model: modelToUse, messages: snapshot.messages, stream: true, temperature: 0.7, max_tokens: 32768 })
         });
         if (!resp.ok) throw new Error('API请求失败: ' + resp.status);
         var decoder2 = new TextDecoder();
