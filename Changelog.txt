@@ -75,3 +75,5 @@
 # 修复
 1.ai返回部分更新的数据后旧数据删除导致数据残缺的问题
 2.出现Cannot read properties of undefined (reading 'length')
+————————Pre-alpha 0.5.6
+- 更新提示词，尝试让ai不把一次性支出/收入列入列表。
